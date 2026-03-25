@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Fiscal Pro - ISS, IPVA e ICMS</title>
+    <style>
+        :root { --p: #1a73e8; --s: #34a853; --bg: #f8f9fa; --txt: #202124; }
+        body { font-family: 'Roboto', Arial, sans-serif; background: var(--bg); color: var(--txt); padding: 10px; }
+        .card { max-width: 550px; margin: 20px auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        h2 { color: var(--p); margin-top: 0; font-size: 20px; border-bottom: 2px solid var(--p); padding-bottom: 10px; }
+        .field { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; color: #5f6368; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--p); color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .res-box { display: none; margin-top: 20px; padding: 15px; border-left: 5px solid var(--s); background: #e6f4ea; border-radius: 4px; }
+        .copy-btn { background: #5f6368; font-size: 13px; padding: 8px; margin-top: 15px; }
+        .footer-info { font-size: 11px; color: #70757a; margin-top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Calculadora Fiscal Pro</h2>
+    
+    <div style="height:60px; background:#f1f3f4; margin-bottom:15px; text-align:center; line-height:60px; font-size:10px; color:#999; border:1px dashed #ccc;">Anúncio Google AdSense</div>
+
+    <div class="field">
+        <label>Tipo de Tributo</label>
+        <select id="tributo">
+            <option value="iss">ISS / Taxas Municipais (Contagem/BH)</option>
+            <option value="ipva">IPVA / ICMS (Padrão MG)</option>
+            <option value="federal">Simples Nacional / Federal (SELIC)</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Valor Principal (R$)</label>
+        <input type="number" id="valor" placeholder="0,00" step="0.01">
+    </div>
+
+    <div class="field">
+        <label>Data de Vencimento Original</label>
+        <input type="date" id="venc">
+    </div>
+
+    <div class="field">
+        <label>Data Prevista para Pagamento</label>
+        <input type="date" id="pagto">
+    </div>
+
+    <button onclick="gerarCalculo()">CALCULAR AGORA</button>
+
+    <div id="box" class="res-box">
+        <div id="detalhes"></div>
+        <button class="copy-btn" onclick="copiar()">Copiar Resumo para WhatsApp</button>
+    </div>
+
+    <div class="footer-info">
+        *Cálculos baseados no Art. 127 da Lei 1611/83 (ISS) e normas da SEF-MG. <br>
+        Sempre confira com a guia oficial emitida pelo órgão.
+    </div>
+</div>
+
+<script>
+    function gerarCalculo() {
+        const t = document.getElementById('tributo').value;
+        const v = parseFloat(document.getElementById('valor').value);
+        const d1 = new Date(document.getElementById('venc').value);
+        const d2 = new Date(document.getElementById('pagto').value);
+
+        if(!v || isNaN(d1) || isNaN(d2)) return alert("Preencha todos os campos.");
+
+        const dias = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+        if(dias <= 0) return alert("A data de pagamento deve ser maior que o vencimento.");
+
+        let mPerc = 0; let jPerc = 0;
+
+        if(t === 'iss') { 
+            mPerc = Math.min(dias * 0.33, 20); // 0,33% ao dia, cap em 20%
+            jPerc = (dias / 30) * 1; // 1% ao mês
+        } else if(t === 'ipva') {
+            mPerc = dias <= 30 ? dias * 0.3 : 20; // 0,3% dia até 30 dias, depois 20%
+            jPerc = (dias / 30) * 1.2; // Estimação SELIC/Juros MG
+        } else {
+            mPerc = 20; // Federal atrasado costuma bater 20% rápido
+            jPerc = (dias / 30) * 1.1; // Base SELIC aproximada
+        }
+
+        const multa = v * (mPerc / 100);
+        const juros = v * (jPerc / 100);
+        const total = v + multa + juros;
+
+        const resumo = `
+            <strong>Resumo do Cálculo:</strong><br>
+            Principal: R$ ${v.toFixed(2)}<br>
+            Multa (${mPerc.toFixed(2)}%): R$ ${multa.toFixed(2)}<br>
+            Juros Estimados: R$ ${juros.toFixed(2)}<br><hr>
+            <strong>TOTAL: R$ ${total.toFixed(2)}</strong>
+        `;
+
+        document.getElementById('detalhes').innerHTML = resumo;
+        document.getElementById('box').style.display = 'block';
+        window.resumoTexto = `Cálculo de Tributo Atualizado:
+Principal: R$ ${v.toFixed(2)}
+Multa: R$ ${multa.toFixed(2)}
+Juros: R$ ${juros.toFixed(2)}
+Total a pagar: R$ ${total.toFixed(2)}
+Calculado em: ${new Date().toLocaleDateString('pt-BR')}`;
+    }
+
+    function copiar() {
+        navigator.clipboard.writeText(window.resumoTexto);
+        alert("Resumo copiado!");
+    }
+</script>
+</body>
+</html>
